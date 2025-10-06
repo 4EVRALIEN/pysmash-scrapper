@@ -125,7 +125,7 @@ def scrape_all(ctx):
                 click.echo(f"❌ Error processing set {set_name}: {e}")
                 error_count += 1
 
-    click.echo(f"\n🎯 Scraping complete!")
+    click.echo("🎯 Scraping complete!")
     click.echo(f"✅ Successes: {success_count}")
     click.echo(f"❌ Errors: {error_count}")
 
@@ -168,8 +168,6 @@ def scrape_faction(ctx, faction_name, set_name):
 def scrape_set(ctx, set_name):
     """Scrape a specific set and its factions."""
     click.echo(f"📦 Scraping set: {set_name}")
-
-    database_url = ctx.obj["database_url"]
 
     with SmashUpWebClient() as web_client:
         set_scraper = SetScraper(web_client)

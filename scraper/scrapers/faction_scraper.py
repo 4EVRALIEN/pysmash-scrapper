@@ -69,8 +69,9 @@ class FactionScraper(BaseScraper):
             self._log_scraping_complete(
                 "card scraping", result.items_processed, faction_name
             )
-            # Note: In a real implementation, you'd want to return the actual cards
-            # For now, we'll return an empty list as the cards are handled by the card scraper
+            # Note: In a real implementation, you'd want to return actual cards
+            # For now, we'll return an empty list as cards are handled by
+            # the card scraper
             return []
         else:
             message = (
