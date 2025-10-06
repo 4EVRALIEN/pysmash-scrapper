@@ -47,14 +47,14 @@ SAMPLE_BASES_PAGE_HTML = """
 SAMPLE_SET_DATA = {
     "set_id": "sample_set_id_123",
     "set_name": "Core_Set",
-    "set_url": "https://smashup.fandom.com/wiki/Core_Set"
+    "set_url": "https://smashup.fandom.com/wiki/Core_Set",
 }
 
 SAMPLE_FACTION_DATA = {
     "faction_id": "sample_faction_id_123",
     "faction_name": "Robots",
     "faction_url": "https://smashup.fandom.com/wiki/Robots",
-    "set_id": "sample_set_id_123"
+    "set_id": "sample_set_id_123",
 }
 
 SAMPLE_MINION_CARD = {
@@ -62,14 +62,14 @@ SAMPLE_MINION_CARD = {
     "description": "Move a minion to another base.",
     "faction_name": "Robots",
     "faction_id": "sample_faction_id_123",
-    "power": 3
+    "power": 3,
 }
 
 SAMPLE_ACTION_CARD = {
     "name": "Laser Blast",
     "description": "Destroy a minion with power 3 or less.",
     "faction_name": "Robots",
-    "faction_id": "sample_faction_id_123"
+    "faction_id": "sample_faction_id_123",
 }
 
 SAMPLE_BASE_CARD = {
@@ -78,14 +78,14 @@ SAMPLE_BASE_CARD = {
     "base_desc": "Students get +1 power.",
     "first_place": 4,
     "second_place": 2,
-    "third_place": 1
+    "third_place": 1,
 }
 
 # Mock response data for web client testing
 MOCK_WEB_RESPONSES = {
     "Core_Set": SAMPLE_SET_PAGE_HTML,
     "Robots": SAMPLE_FACTION_PAGE_HTML,
-    "Bases": SAMPLE_BASES_PAGE_HTML
+    "Bases": SAMPLE_BASES_PAGE_HTML,
 }
 
 # Error scenarios for testing
@@ -93,5 +93,5 @@ ERROR_SCENARIOS = {
     "network_timeout": "Request timed out",
     "invalid_html": "<html><invalid></html>",
     "empty_response": "",
-    "server_error": "Internal Server Error"
+    "server_error": "Internal Server Error",
 }

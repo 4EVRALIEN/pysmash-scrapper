@@ -7,20 +7,20 @@ __author__ = "PySmash Scraper Team"
 
 from .models import (
     ActionCard,
-    MinionCard,
-    Faction,
-    Set,
     Base,
+    Faction,
+    HealthCheck,
+    MinionCard,
     ScrapingResult,
-    HealthCheck
+    Set,
 )
 
 __all__ = [
     "ActionCard",
-    "MinionCard", 
+    "MinionCard",
     "Faction",
     "Set",
     "Base",
     "ScrapingResult",
-    "HealthCheck"
+    "HealthCheck",
 ]

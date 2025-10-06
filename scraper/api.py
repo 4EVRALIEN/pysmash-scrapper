@@ -1,19 +1,19 @@
 """
 FastAPI web service for the PySmash scraper.
 """
+
 import logging
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .models import HealthCheck, ScrapingResult
 from .database.repository import SmashUpRepository
-from .scrapers.set_scraper import SetScraper
+from .models import HealthCheck, ScrapingResult
 from .scrapers.faction_scraper import FactionScraper
+from .scrapers.set_scraper import SetScraper
 from .utils.web_client import SmashUpWebClient
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +25,7 @@ app = FastAPI(
     description="A REST API for scraping Smash Up! card game data",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Add CORS middleware
@@ -45,9 +45,7 @@ repository = SmashUpRepository("sqlite:///data/smashup.db")
 async def health_check():
     """Health check endpoint."""
     return HealthCheck(
-        status="healthy",
-        timestamp=datetime.utcnow().isoformat(),
-        version="1.0.0"
+        status="healthy", timestamp=datetime.utcnow().isoformat(), version="1.0.0"
     )
 
 
@@ -68,7 +66,9 @@ async def get_factions_by_set(set_id: str):
     try:
         factions = repository.get_factions_by_set(set_id)
         if not factions:
-            raise HTTPException(status_code=404, detail="Set not found or no factions available")
+            raise HTTPException(
+                status_code=404, detail="Set not found or no factions available"
+            )
         return factions
     except HTTPException:
         raise
@@ -78,21 +78,19 @@ async def get_factions_by_set(set_id: str):
 
 
 @app.post("/scrape/faction/{faction_name}", response_model=ScrapingResult)
-async def scrape_faction(faction_name: str, background_tasks: BackgroundTasks, set_name: str = None):
+async def scrape_faction(
+    faction_name: str, background_tasks: BackgroundTasks, set_name: str = None
+):
     """Trigger scraping for a specific faction."""
     try:
         # Add the scraping task to background tasks
-        background_tasks.add_task(
-            _background_scrape_faction, 
-            faction_name, 
-            set_name
-        )
-        
+        background_tasks.add_task(_background_scrape_faction, faction_name, set_name)
+
         return ScrapingResult(
             success=True,
             message=f"Faction scraping for '{faction_name}' started in background",
             items_processed=0,
-            errors=[]
+            errors=[],
         )
     except Exception as e:
         logger.error(f"Error starting faction scraping for {faction_name}: {e}")
@@ -105,12 +103,12 @@ async def scrape_set(set_name: str, background_tasks: BackgroundTasks):
     try:
         # Add the scraping task to background tasks
         background_tasks.add_task(_background_scrape_set, set_name)
-        
+
         return ScrapingResult(
             success=True,
             message=f"Set scraping for '{set_name}' started in background",
             items_processed=0,
-            errors=[]
+            errors=[],
         )
     except Exception as e:
         logger.error(f"Error starting set scraping for {set_name}: {e}")
@@ -122,12 +120,12 @@ async def scrape_all(background_tasks: BackgroundTasks):
     """Trigger scraping for all data."""
     try:
         background_tasks.add_task(_background_scrape_all)
-        
+
         return ScrapingResult(
             success=True,
             message="Full scraping started in background",
             items_processed=0,
-            errors=[]
+            errors=[],
         )
     except Exception as e:
         logger.error(f"Error starting full scraping: {e}")
@@ -153,10 +151,10 @@ async def _background_scrape_faction(faction_name: str, set_name: str = None):
     """Background task for scraping a faction."""
     try:
         logger.info(f"Starting background scraping for faction: {faction_name}")
-        
+
         with SmashUpWebClient() as web_client:
             faction_scraper = FactionScraper(web_client)
-            
+
             # Generate or get set_id
             set_id = None
             if set_name:
@@ -164,14 +162,16 @@ async def _background_scrape_faction(faction_name: str, set_name: str = None):
                 set_data = set_scraper.scrape_set_data(set_name)
                 set_id = set_data.set_id
                 repository.insert_set(set_data)
-            
+
             result = faction_scraper.scrape(faction_name, set_id)
-            
+
             if result.success:
                 logger.info(f"Successfully completed faction scraping: {faction_name}")
             else:
-                logger.error(f"Failed faction scraping: {faction_name} - {result.message}")
-                
+                logger.error(
+                    f"Failed faction scraping: {faction_name} - {result.message}"
+                )
+
     except Exception as e:
         logger.error(f"Background faction scraping failed for {faction_name}: {e}")
 
@@ -180,16 +180,16 @@ async def _background_scrape_set(set_name: str):
     """Background task for scraping a set."""
     try:
         logger.info(f"Starting background scraping for set: {set_name}")
-        
+
         with SmashUpWebClient() as web_client:
             set_scraper = SetScraper(web_client)
             result = set_scraper.scrape(set_name)
-            
+
             if result.success:
                 logger.info(f"Successfully completed set scraping: {set_name}")
             else:
                 logger.error(f"Failed set scraping: {set_name} - {result.message}")
-                
+
     except Exception as e:
         logger.error(f"Background set scraping failed for {set_name}: {e}")
 
@@ -198,48 +198,52 @@ async def _background_scrape_all():
     """Background task for scraping all data."""
     try:
         logger.info("Starting background scraping for all data")
-        
+
         with SmashUpWebClient() as web_client:
             set_scraper = SetScraper(web_client)
             faction_scraper = FactionScraper(web_client)
-            
+
             sets = set_scraper.get_available_sets()
             total_processed = 0
-            
+
             for set_name in sets:
                 try:
                     # Scrape set data
                     set_data = set_scraper.scrape_set_data(set_name)
                     repository.insert_set(set_data)
                     total_processed += 1
-                    
+
                     # Scrape factions for this set
                     factions = set_scraper.scrape_set_factions(set_name)
-                    
+
                     for faction_name in factions:
                         if not faction_name.strip():
                             continue
-                        
+
                         try:
                             faction_data = faction_scraper.scrape_faction_data(
                                 faction_name, set_data.set_id
                             )
                             repository.insert_faction(faction_data)
-                            
+
                             # Scrape cards for this faction
                             faction_scraper.scrape_faction_cards(
                                 faction_name, faction_data.faction_id
                             )
                             total_processed += 1
-                            
+
                         except Exception as e:
-                            logger.error(f"Error processing faction {faction_name}: {e}")
-                            
+                            logger.error(
+                                f"Error processing faction {faction_name}: {e}"
+                            )
+
                 except Exception as e:
                     logger.error(f"Error processing set {set_name}: {e}")
-            
-            logger.info(f"Successfully completed full scraping: {total_processed} items processed")
-            
+
+            logger.info(
+                f"Successfully completed full scraping: {total_processed} items processed"
+            )
+
     except Exception as e:
         logger.error(f"Background full scraping failed: {e}")
 
@@ -255,4 +259,5 @@ async def startup_event():
 # Main entry point for running with uvicorn
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
