@@ -3,11 +3,10 @@ Card scraper for extracting individual card data from faction pages.
 """
 
 import logging
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from ..models import ActionCard, MinionCard, ScrapingResult
 from ..utils.text_parsing import (
-    clean_card_text,
     extract_card_description,
     extract_power_from_text,
     is_minion_card_text,
@@ -81,9 +80,10 @@ class CardScraper(BaseScraper):
             self._log_scraping_complete("card scraping", len(cards), faction_name)
 
             if cards:
+                message = f"Successfully scraped {len(cards)} cards from {faction_name}"
                 return ScrapingResult(
                     success=True,
-                    message=f"Successfully scraped {len(cards)} cards from {faction_name}",
+                    message=message,
                     items_processed=len(cards),
                     errors=errors,
                 )

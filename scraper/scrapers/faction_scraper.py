@@ -3,7 +3,7 @@ Faction scraper for extracting faction data and associated cards.
 """
 
 import logging
-from typing import List, Optional
+from typing import List
 
 from ..models import ActionCard, Faction, MinionCard, ScrapingResult
 from .base_scraper import BaseScraper
@@ -73,9 +73,11 @@ class FactionScraper(BaseScraper):
             # For now, we'll return an empty list as the cards are handled by the card scraper
             return []
         else:
-            logger.error(
-                f"Failed to scrape cards for faction {faction_name}: {result.message}"
+            message = (
+                f"Failed to scrape cards for faction {faction_name}: "
+                f"{result.message}"
             )
+            logger.error(message)
             return []
 
     def scrape(self, faction_name: str, set_id: str = None) -> ScrapingResult:

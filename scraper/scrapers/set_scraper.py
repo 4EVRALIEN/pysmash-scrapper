@@ -6,8 +6,6 @@ import logging
 from typing import List
 from typing import Set as TypeSet
 
-from bs4 import BeautifulSoup
-
 from ..models import ScrapingResult, Set
 from .base_scraper import BaseScraper
 

@@ -241,7 +241,8 @@ async def _background_scrape_all():
                     logger.error(f"Error processing set {set_name}: {e}")
 
             logger.info(
-                f"Successfully completed full scraping: {total_processed} items processed"
+                f"Successfully completed full scraping: "
+                f"{total_processed} items processed"
             )
 
     except Exception as e:

@@ -4,12 +4,10 @@ Command line interface for the PySmash scraper.
 
 import logging
 import sys
-from typing import Optional
 
 import click
 
 from .database.repository import SmashUpRepository
-from .scrapers.card_scraper import CardScraper
 from .scrapers.faction_scraper import FactionScraper
 from .scrapers.set_scraper import SetScraper
 from .utils.web_client import SmashUpWebClient
@@ -36,6 +34,66 @@ def cli(ctx, verbose, database_url):
     ctx.obj["verbose"] = verbose
 
 
+def _process_set(set_name, repository, set_scraper, faction_scraper):
+    """Process a single set and its factions."""
+    success_count = 0
+    error_count = 0
+
+    click.echo(f"Processing set: {set_name}")
+
+    # Scrape set data
+    set_data = set_scraper.scrape_set_data(set_name)
+    if not repository.insert_set(set_data):
+        error_count += 1
+        click.echo(f"  ❌ Failed to insert set: {set_name}")
+        return success_count, error_count
+
+    success_count += 1
+    click.echo(f"  ✅ Set inserted: {set_name}")
+
+    # Process factions for this set
+    factions = set_scraper.scrape_set_factions(set_name)
+    click.echo(f"  🏛️ Found {len(factions)} factions")
+
+    for faction_name in factions:
+        if not faction_name.strip():
+            continue
+
+        f_success, f_error = _process_faction(
+            faction_name, set_data.set_id, repository, faction_scraper
+        )
+        success_count += f_success
+        error_count += f_error
+
+    return success_count, error_count
+
+
+def _process_faction(faction_name, set_id, repository, faction_scraper):
+    """Process a single faction and its cards."""
+    try:
+        faction_data = faction_scraper.scrape_faction_data(faction_name, set_id)
+
+        if not repository.insert_faction(faction_data):
+            click.echo(f"    ❌ Failed to insert faction: {faction_name}")
+            return 0, 1
+
+        click.echo(f"    ✅ Faction inserted: {faction_name}")
+
+        # Scrape cards for this faction
+        card_result = faction_scraper.scrape_faction_cards(
+            faction_name, faction_data.faction_id
+        )
+
+        if card_result:
+            click.echo(f"    🃏 Processed cards for {faction_name}")
+
+        return 1, 0
+
+    except Exception as e:
+        click.echo(f"    ❌ Error processing faction {faction_name}: {e}")
+        return 0, 1
+
+
 @cli.command()
 @click.pass_context
 def scrape_all(ctx):
@@ -49,7 +107,6 @@ def scrape_all(ctx):
     error_count = 0
 
     with SmashUpWebClient() as web_client:
-        # Scrape sets and factions
         set_scraper = SetScraper(web_client)
         faction_scraper = FactionScraper(web_client)
 
@@ -58,53 +115,11 @@ def scrape_all(ctx):
 
         for set_name in sets:
             try:
-                click.echo(f"Processing set: {set_name}")
-
-                # Scrape set data
-                set_data = set_scraper.scrape_set_data(set_name)
-                if repository.insert_set(set_data):
-                    success_count += 1
-                    click.echo(f"  ✅ Set inserted: {set_name}")
-                else:
-                    error_count += 1
-                    click.echo(f"  ❌ Failed to insert set: {set_name}")
-                    continue
-
-                # Scrape factions for this set
-                factions = set_scraper.scrape_set_factions(set_name)
-                click.echo(f"  🏛️ Found {len(factions)} factions")
-
-                for faction_name in factions:
-                    if not faction_name.strip():
-                        continue
-
-                    try:
-                        faction_data = faction_scraper.scrape_faction_data(
-                            faction_name, set_data.set_id
-                        )
-
-                        if repository.insert_faction(faction_data):
-                            click.echo(f"    ✅ Faction inserted: {faction_name}")
-
-                            # Scrape cards for this faction
-                            card_result = faction_scraper.scrape_faction_cards(
-                                faction_name, faction_data.faction_id
-                            )
-
-                            if card_result:
-                                click.echo(f"    🃏 Processed cards for {faction_name}")
-
-                        else:
-                            click.echo(
-                                f"    ❌ Failed to insert faction: {faction_name}"
-                            )
-                            error_count += 1
-
-                    except Exception as e:
-                        click.echo(
-                            f"    ❌ Error processing faction {faction_name}: {e}"
-                        )
-                        error_count += 1
+                s_count, e_count = _process_set(
+                    set_name, repository, set_scraper, faction_scraper
+                )
+                success_count += s_count
+                error_count += e_count
 
             except Exception as e:
                 click.echo(f"❌ Error processing set {set_name}: {e}")
@@ -155,7 +170,6 @@ def scrape_set(ctx, set_name):
     click.echo(f"📦 Scraping set: {set_name}")
 
     database_url = ctx.obj["database_url"]
-    repository = SmashUpRepository(database_url)
 
     with SmashUpWebClient() as web_client:
         set_scraper = SetScraper(web_client)

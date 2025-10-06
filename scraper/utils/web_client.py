@@ -4,7 +4,7 @@ Web client utilities for making HTTP requests with proper error handling.
 
 import logging
 import time
-from typing import Any, Dict, Optional
+from typing import Optional
 from urllib.parse import urljoin
 
 import requests

@@ -4,10 +4,9 @@ Repository pattern implementation for database operations.
 
 import logging
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
 from ..models import (
     ActionCard,
