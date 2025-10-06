@@ -7,13 +7,12 @@ import logging
 import sys
 from typing import List
 
-from scraper.scrapers.set_scraper import SetScraper
-from scraper.scrapers.faction_scraper import FactionScraper
 from scraper.database.repository import SmashUpRepository
-from scraper.utils.web_client import SmashUpWebClient
-from scraper.utils.text_parsing import extract_base_components
 from scraper.models import Base
-
+from scraper.scrapers.faction_scraper import FactionScraper
+from scraper.scrapers.set_scraper import SetScraper
+from scraper.utils.text_parsing import extract_base_components
+from scraper.utils.web_client import SmashUpWebClient
 
 # Configure logging to match original script
 logging.basicConfig(

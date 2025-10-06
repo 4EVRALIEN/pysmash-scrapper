@@ -1,12 +1,11 @@
 import hashlib
 import logging
-from re import search
-from typing import List, Set, Optional
 from dataclasses import dataclass
+from re import search
+from typing import List, Optional, Set
 
 import requests
 from bs4 import BeautifulSoup
-
 from pysmash.cards import ActionCard, MinionCard
 from pysmash.database import DevelopmentDatabase, SQLite
 from pysmash.factions import Faction
