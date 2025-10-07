@@ -7,9 +7,9 @@ This example demonstrates how to:
 3. Handle different data types
 """
 
-import sys
-import os
 import json
+import os
+import sys
 from datetime import datetime
 
 # Add the project root to Python path
