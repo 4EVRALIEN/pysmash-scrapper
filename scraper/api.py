@@ -1,11 +1,12 @@
 """
 FastAPI web service for the PySmash scraper.
 """
-
 import logging
+import os
 from datetime import datetime
 from typing import Any, Dict, List
 
+import uvicorn
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,15 +38,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global repository instance
-repository = SmashUpRepository("sqlite:///data/smashup.db")
+# Global repository instance - will be initialized lazily
+_repository = None
+
+
+def get_repository() -> SmashUpRepository:
+    """Get or create the repository instance."""
+    global _repository
+    if _repository is None:
+        # Use environment variable or default to in-memory for tests
+        db_url = os.getenv("DATABASE_URL", "sqlite:///data/smashup.db")
+        
+        # Create data directory if using file-based SQLite
+        if db_url.startswith("sqlite:///") and not db_url.endswith(":memory:"):
+            db_path = db_url.replace("sqlite:///", "")
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        
+        _repository = SmashUpRepository(db_url)
+    return _repository
 
 
 @app.get("/health", response_model=HealthCheck)
 async def health_check():
     """Health check endpoint."""
     return HealthCheck(
-        status="healthy", timestamp=datetime.utcnow().isoformat(), version="1.0.0"
+        status="healthy", 
+        timestamp=datetime.utcnow().isoformat(), 
+        version="1.0.0"
     )
 
 
@@ -53,10 +72,19 @@ async def health_check():
 async def get_sets():
     """Get all sets from the database."""
     try:
+        repository = get_repository()
         sets = repository.get_all_sets()
-        return sets
+        return [
+            {
+                "set_id": s.set_id,
+                "set_name": s.set_name,
+                "set_url": s.set_url,
+                "description": s.description,
+            }
+            for s in sets
+        ]
     except Exception as e:
-        logger.error(f"Error retrieving sets: {e}")
+        logger.error(f"Error getting sets: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve sets")
 
 
@@ -64,17 +92,28 @@ async def get_sets():
 async def get_factions_by_set(set_id: str):
     """Get all factions for a specific set."""
     try:
+        repository = get_repository()
         factions = repository.get_factions_by_set(set_id)
         if not factions:
             raise HTTPException(
-                status_code=404, detail="Set not found or no factions available"
+                status_code=404, detail=f"No factions found for set {set_id}"
             )
-        return factions
+        return [
+            {
+                "faction_id": f.faction_id,
+                "faction_name": f.faction_name,
+                "faction_url": f.faction_url,
+                "set_id": f.set_id,
+            }
+            for f in factions
+        ]
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error retrieving factions for set {set_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve factions")
+        logger.error(f"Error getting factions for set {set_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to retrieve factions"
+        )
 
 
 @app.post("/scrape/faction/{faction_name}", response_model=ScrapingResult)
@@ -83,9 +122,9 @@ async def scrape_faction(
 ):
     """Trigger scraping for a specific faction."""
     try:
-        # Add the scraping task to background tasks
-        background_tasks.add_task(_background_scrape_faction, faction_name, set_name)
-
+        background_tasks.add_task(
+            _background_scrape_faction, faction_name, set_name
+        )
         return ScrapingResult(
             success=True,
             message=f"Faction scraping for '{faction_name}' started in background",
@@ -93,17 +132,17 @@ async def scrape_faction(
             errors=[],
         )
     except Exception as e:
-        logger.error(f"Error starting faction scraping for {faction_name}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to start scraping")
+        logger.error(f"Error starting faction scrape for {faction_name}: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to start faction scraping"
+        )
 
 
 @app.post("/scrape/set/{set_name}", response_model=ScrapingResult)
 async def scrape_set(set_name: str, background_tasks: BackgroundTasks):
     """Trigger scraping for a specific set."""
     try:
-        # Add the scraping task to background tasks
         background_tasks.add_task(_background_scrape_set, set_name)
-
         return ScrapingResult(
             success=True,
             message=f"Set scraping for '{set_name}' started in background",
@@ -111,8 +150,10 @@ async def scrape_set(set_name: str, background_tasks: BackgroundTasks):
             errors=[],
         )
     except Exception as e:
-        logger.error(f"Error starting set scraping for {set_name}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to start scraping")
+        logger.error(f"Error starting set scrape for {set_name}: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to start set scraping"
+        )
 
 
 @app.post("/scrape/all", response_model=ScrapingResult)
@@ -120,7 +161,6 @@ async def scrape_all(background_tasks: BackgroundTasks):
     """Trigger scraping for all data."""
     try:
         background_tasks.add_task(_background_scrape_all)
-
         return ScrapingResult(
             success=True,
             message="Full scraping started in background",
@@ -128,7 +168,7 @@ async def scrape_all(background_tasks: BackgroundTasks):
             errors=[],
         )
     except Exception as e:
-        logger.error(f"Error starting full scraping: {e}")
+        logger.error(f"Error starting full scrape: {e}")
         raise HTTPException(status_code=500, detail="Failed to start scraping")
 
 
@@ -136,11 +176,9 @@ async def scrape_all(background_tasks: BackgroundTasks):
 async def clear_database():
     """Clear all data from the database."""
     try:
-        success = repository.clear_all_data()
-        if success:
-            return {"message": "Database cleared successfully"}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to clear database")
+        repository = get_repository()
+        repository.clear_all_data()
+        return {"message": "Database cleared successfully"}
     except Exception as e:
         logger.error(f"Error clearing database: {e}")
         raise HTTPException(status_code=500, detail="Failed to clear database")
@@ -151,25 +189,29 @@ async def _background_scrape_faction(faction_name: str, set_name: str = None):
     """Background task for scraping a faction."""
     try:
         logger.info(f"Starting background scraping for faction: {faction_name}")
+        repository = get_repository()
 
         with SmashUpWebClient() as web_client:
             faction_scraper = FactionScraper(web_client)
-
-            # Generate or get set_id
+            
             set_id = None
             if set_name:
+                # Create or get set first
                 set_scraper = SetScraper(web_client)
                 set_data = set_scraper.scrape_set_data(set_name)
+                repository.save_set(set_data)
                 set_id = set_data.set_id
-                repository.insert_set(set_data)
 
+            # Scrape faction
             result = faction_scraper.scrape(faction_name, set_id)
-
             if result.success:
-                logger.info(f"Successfully completed faction scraping: {faction_name}")
+                logger.info(
+                    f"Background faction scraping completed for {faction_name}"
+                )
             else:
                 logger.error(
-                    f"Failed faction scraping: {faction_name} - {result.message}"
+                    f"Background faction scraping failed for {faction_name}: "
+                    f"{result.errors}"
                 )
 
     except Exception as e:
@@ -180,15 +222,29 @@ async def _background_scrape_set(set_name: str):
     """Background task for scraping a set."""
     try:
         logger.info(f"Starting background scraping for set: {set_name}")
+        repository = get_repository()
 
         with SmashUpWebClient() as web_client:
             set_scraper = SetScraper(web_client)
-            result = set_scraper.scrape(set_name)
+            faction_scraper = FactionScraper(web_client)
 
-            if result.success:
-                logger.info(f"Successfully completed set scraping: {set_name}")
-            else:
-                logger.error(f"Failed set scraping: {set_name} - {result.message}")
+            # Scrape set data
+            set_data = set_scraper.scrape_set_data(set_name)
+            repository.save_set(set_data)
+
+            # Scrape all factions in the set
+            factions = set_scraper.scrape_set_factions(set_name)
+            for faction_name in factions:
+                faction_result = faction_scraper.scrape(
+                    faction_name, set_data.set_id
+                )
+                if not faction_result.success:
+                    logger.error(
+                        f"Failed to scrape faction {faction_name} in set "
+                        f"{set_name}: {faction_result.errors}"
+                    )
+
+        logger.info(f"Background set scraping completed for {set_name}")
 
     except Exception as e:
         logger.error(f"Background set scraping failed for {set_name}: {e}")
@@ -198,55 +254,41 @@ async def _background_scrape_all():
     """Background task for scraping all data."""
     try:
         logger.info("Starting background scraping for all data")
+        repository = get_repository()
 
         with SmashUpWebClient() as web_client:
             set_scraper = SetScraper(web_client)
             faction_scraper = FactionScraper(web_client)
 
-            sets = set_scraper.get_available_sets()
-            total_processed = 0
+            # Get all available sets
+            available_sets = set_scraper.get_available_sets()
+            logger.info(f"Found {len(available_sets)} sets to scrape")
 
-            for set_name in sets:
+            for set_name in available_sets:
                 try:
                     # Scrape set data
                     set_data = set_scraper.scrape_set_data(set_name)
-                    repository.insert_set(set_data)
-                    total_processed += 1
+                    repository.save_set(set_data)
 
-                    # Scrape factions for this set
+                    # Scrape all factions in the set
                     factions = set_scraper.scrape_set_factions(set_name)
-
                     for faction_name in factions:
-                        if not faction_name.strip():
-                            continue
-
-                        try:
-                            faction_data = faction_scraper.scrape_faction_data(
-                                faction_name, set_data.set_id
-                            )
-                            repository.insert_faction(faction_data)
-
-                            # Scrape cards for this faction
-                            faction_scraper.scrape_faction_cards(
-                                faction_name, faction_data.faction_id
-                            )
-                            total_processed += 1
-
-                        except Exception as e:
+                        faction_result = faction_scraper.scrape(
+                            faction_name, set_data.set_id
+                        )
+                        if not faction_result.success:
                             logger.error(
-                                f"Error processing faction {faction_name}: {e}"
+                                f"Failed to scrape faction {faction_name} in "
+                                f"set {set_name}: {faction_result.errors}"
                             )
 
                 except Exception as e:
-                    logger.error(f"Error processing set {set_name}: {e}")
+                    logger.error(f"Error scraping set {set_name}: {e}")
 
-            logger.info(
-                f"Successfully completed full scraping: "
-                f"{total_processed} items processed"
-            )
+        logger.info("Background scraping for all data completed")
 
     except Exception as e:
-        logger.error(f"Background full scraping failed: {e}")
+        logger.error(f"Background scraping for all data failed: {e}")
 
 
 # Startup event
@@ -254,11 +296,9 @@ async def _background_scrape_all():
 async def startup_event():
     """Initialize the application on startup."""
     logger.info("PySmash Scraper API starting up...")
-    logger.info("Database initialized and ready")
+    # Repository will be created lazily when first needed
 
 
 # Main entry point for running with uvicorn
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,92 +1,98 @@
 """
 Pydantic models for data validation and serialization.
 """
-
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, field_validator
 
 
-class CardBase(BaseModel):
-    """Base model for all card types."""
+class MinionCard(BaseModel):
+    """Model for a minion card."""
 
-    name: str = Field(..., description="The card name")
-    description: str = Field(..., description="Card description/effect text")
-    faction_name: str = Field(
-        ..., description="Name of the faction this card belongs to"
-    )
-    faction_id: str = Field(..., description="Unique identifier for the faction")
+    card_id: str
+    name: str
+    faction_name: str
+    faction_id: str
+    power: int
+    description: str
+    card_url: Optional[str] = None
 
-
-class MinionCard(CardBase):
-    """Model for minion cards with power."""
-
-    power: int = Field(..., ge=0, le=20, description="Minion power value")
-
-    @validator("power")
+    @field_validator("power")
+    @classmethod
     def validate_power(cls, v):
-        if not isinstance(v, int) or v < 0:
-            raise ValueError("Power must be a non-negative integer")
+        """Validate power is non-negative."""
+        if v < 0:
+            raise ValueError("Power must be non-negative")
         return v
 
 
-class ActionCard(CardBase):
-    """Model for action cards."""
+class ActionCard(BaseModel):
+    """Model for an action card."""
 
-    pass
-
-
-class Faction(BaseModel):
-    """Model for faction data."""
-
-    faction_id: str = Field(..., description="Unique identifier")
-    faction_name: str = Field(..., description="Display name")
-    faction_url: str = Field(..., description="Wiki URL")
-    set_id: str = Field(..., description="ID of the set this faction belongs to")
+    card_id: str
+    name: str
+    faction_name: str
+    faction_id: str
+    description: str
+    card_url: Optional[str] = None
 
 
-class Set(BaseModel):
-    """Model for set/expansion data."""
+class BaseData(BaseModel):
+    """Model for a base."""
 
-    set_id: str = Field(..., description="Unique identifier")
-    set_name: str = Field(..., description="Display name")
-    set_url: str = Field(..., description="Wiki URL")
-    factions: Optional[List[Faction]] = Field(
-        default=None, description="Factions in this set"
-    )
+    base_id: str
+    name: str
+    base_power: int
+    first_place: int
+    second_place: int
+    third_place: int
+    description: str
+    base_url: Optional[str] = None
 
-
-class Base(BaseModel):
-    """Model for base cards."""
-
-    base_name: str = Field(..., description="Name of the base")
-    base_power: int = Field(..., ge=1, description="Breakpoint power")
-    base_desc: str = Field(..., description="Base effect description")
-    first_place: int = Field(..., ge=0, description="VP for first place")
-    second_place: int = Field(..., ge=0, description="VP for second place")
-    third_place: int = Field(..., ge=0, description="VP for third place")
-
-    @validator("base_power", "first_place", "second_place", "third_place")
-    def validate_positive_int(cls, v):
-        if not isinstance(v, int) or v < 0:
-            raise ValueError("Value must be a non-negative integer")
+    @field_validator("base_power", "first_place", "second_place", "third_place")
+    @classmethod
+    def validate_points(cls, v):
+        """Validate points are non-negative."""
+        if v < 0:
+            raise ValueError("Points must be non-negative")
         return v
+
+
+class FactionData(BaseModel):
+    """Model for a faction."""
+
+    faction_id: str
+    faction_name: str
+    set_id: str
+    faction_url: Optional[str] = None
+    description: Optional[str] = None
+    minion_cards: List[MinionCard] = []
+    action_cards: List[ActionCard] = []
+
+
+class SetData(BaseModel):
+    """Model for a set."""
+
+    set_id: str
+    set_name: str
+    set_url: Optional[str] = None
+    description: Optional[str] = None
+    factions: List[FactionData] = []
+    bases: List[BaseData] = []
 
 
 class ScrapingResult(BaseModel):
     """Model for scraping operation results."""
 
-    success: bool = Field(..., description="Whether the operation succeeded")
-    message: str = Field(..., description="Result message")
-    items_processed: int = Field(default=0, description="Number of items processed")
-    errors: List[str] = Field(
-        default_factory=list, description="Any errors encountered"
-    )
+    success: bool
+    message: str
+    items_processed: int
+    errors: List[str] = []
 
 
 class HealthCheck(BaseModel):
-    """Model for API health check response."""
+    """Model for health check response."""
 
-    status: str = Field(..., description="Health status")
-    timestamp: str = Field(..., description="Check timestamp")
-    version: str = Field(..., description="Application version")
+    status: str
+    timestamp: str
+    version: str
