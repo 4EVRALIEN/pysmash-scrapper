@@ -1,6 +1,7 @@
 """
 Tests for the FastAPI application.
 """
+
 import json
 from unittest.mock import patch
 
@@ -11,7 +12,7 @@ def test_health_check(test_client):
     """Test the health check endpoint."""
     response = test_client.get("/health")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["status"] == "healthy"
     assert "timestamp" in data
@@ -36,7 +37,7 @@ def test_scrape_faction(mock_background_task, test_client):
     """Test triggering faction scraping."""
     response = test_client.post("/scrape/faction/Robots")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["success"] is True
     assert "Robots" in data["message"]
@@ -48,7 +49,7 @@ def test_scrape_set(mock_background_task, test_client):
     """Test triggering set scraping."""
     response = test_client.post("/scrape/set/Core_Set")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["success"] is True
     assert "Core_Set" in data["message"]
@@ -59,7 +60,7 @@ def test_scrape_all(mock_background_task, test_client):
     """Test triggering full scraping."""
     response = test_client.post("/scrape/all")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["success"] is True
     assert "scraping started" in data["message"]
@@ -69,6 +70,6 @@ def test_clear_database(test_client):
     """Test clearing the database."""
     response = test_client.delete("/data/clear")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert "cleared successfully" in data["message"]

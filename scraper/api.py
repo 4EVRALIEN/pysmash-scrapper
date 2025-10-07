@@ -1,6 +1,7 @@
 """
 FastAPI web service for the PySmash scraper.
 """
+
 import logging
 import os
 from datetime import datetime
@@ -48,12 +49,12 @@ def get_repository() -> SmashUpRepository:
     if _repository is None:
         # Use environment variable or default to in-memory for tests
         db_url = os.getenv("DATABASE_URL", "sqlite:///data/smashup.db")
-        
+
         # Create data directory if using file-based SQLite
         if db_url.startswith("sqlite:///") and not db_url.endswith(":memory:"):
             db_path = db_url.replace("sqlite:///", "")
             os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
+
         _repository = SmashUpRepository(db_url)
     return _repository
 
@@ -62,9 +63,7 @@ def get_repository() -> SmashUpRepository:
 async def health_check():
     """Health check endpoint."""
     return HealthCheck(
-        status="healthy", 
-        timestamp=datetime.utcnow().isoformat(), 
-        version="1.0.0"
+        status="healthy", timestamp=datetime.utcnow().isoformat(), version="1.0.0"
     )
 
 
@@ -111,9 +110,7 @@ async def get_factions_by_set(set_id: str):
         raise
     except Exception as e:
         logger.error(f"Error getting factions for set {set_id}: {e}")
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve factions"
-        )
+        raise HTTPException(status_code=500, detail="Failed to retrieve factions")
 
 
 @app.post("/scrape/faction/{faction_name}", response_model=ScrapingResult)
@@ -122,9 +119,7 @@ async def scrape_faction(
 ):
     """Trigger scraping for a specific faction."""
     try:
-        background_tasks.add_task(
-            _background_scrape_faction, faction_name, set_name
-        )
+        background_tasks.add_task(_background_scrape_faction, faction_name, set_name)
         return ScrapingResult(
             success=True,
             message=f"Faction scraping for '{faction_name}' started in background",
@@ -133,9 +128,7 @@ async def scrape_faction(
         )
     except Exception as e:
         logger.error(f"Error starting faction scrape for {faction_name}: {e}")
-        raise HTTPException(
-            status_code=500, detail="Failed to start faction scraping"
-        )
+        raise HTTPException(status_code=500, detail="Failed to start faction scraping")
 
 
 @app.post("/scrape/set/{set_name}", response_model=ScrapingResult)
@@ -151,9 +144,7 @@ async def scrape_set(set_name: str, background_tasks: BackgroundTasks):
         )
     except Exception as e:
         logger.error(f"Error starting set scrape for {set_name}: {e}")
-        raise HTTPException(
-            status_code=500, detail="Failed to start set scraping"
-        )
+        raise HTTPException(status_code=500, detail="Failed to start set scraping")
 
 
 @app.post("/scrape/all", response_model=ScrapingResult)
@@ -193,7 +184,7 @@ async def _background_scrape_faction(faction_name: str, set_name: str = None):
 
         with SmashUpWebClient() as web_client:
             faction_scraper = FactionScraper(web_client)
-            
+
             set_id = None
             if set_name:
                 # Create or get set first
@@ -205,9 +196,7 @@ async def _background_scrape_faction(faction_name: str, set_name: str = None):
             # Scrape faction
             result = faction_scraper.scrape(faction_name, set_id)
             if result.success:
-                logger.info(
-                    f"Background faction scraping completed for {faction_name}"
-                )
+                logger.info(f"Background faction scraping completed for {faction_name}")
             else:
                 logger.error(
                     f"Background faction scraping failed for {faction_name}: "
@@ -235,9 +224,7 @@ async def _background_scrape_set(set_name: str):
             # Scrape all factions in the set
             factions = set_scraper.scrape_set_factions(set_name)
             for faction_name in factions:
-                faction_result = faction_scraper.scrape(
-                    faction_name, set_data.set_id
-                )
+                faction_result = faction_scraper.scrape(faction_name, set_data.set_id)
                 if not faction_result.success:
                     logger.error(
                         f"Failed to scrape faction {faction_name} in set "

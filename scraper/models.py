@@ -1,6 +1,7 @@
 """
 Pydantic models for data validation and serialization.
 """
+
 from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
