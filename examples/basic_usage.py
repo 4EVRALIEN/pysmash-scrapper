@@ -11,7 +11,7 @@ import sys
 import os
 
 # Add the project root to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scraper.database.repository import SmashUpRepository
 from scraper.scrapers.faction_scraper import FactionScraper
@@ -23,16 +23,16 @@ def main():
     # Initialize database
     print("Initializing database...")
     repository = SmashUpRepository("sqlite:///example_data.db")
-    
+
     # Initialize web client and scraper
     print("Setting up scrapers...")
     with SmashUpWebClient() as web_client:
         faction_scraper = FactionScraper(web_client)
-        
+
         # Example: Scrape a single faction
         print("Scraping Robots faction...")
         result = faction_scraper.scrape("Robots", "core_set")
-        
+
         if result.success:
             print(f"✅ {result.message}")
             print(f"Items processed: {result.items_processed}")
@@ -40,16 +40,16 @@ def main():
             print(f"❌ Scraping failed: {result.message}")
             for error in result.errors:
                 print(f"  - {error}")
-    
+
     # Query some data
     print("\nQuerying database...")
     sets = repository.get_all_sets()
     print(f"Found {len(sets)} sets in database")
-    
+
     for set_data in sets:
         print(f"- {set_data['set_name']} (ID: {set_data['set_id']})")
-        
-        factions = repository.get_factions_by_set(set_data['set_id'])
+
+        factions = repository.get_factions_by_set(set_data["set_id"])
         for faction in factions:
             print(f"  └── {faction['faction_name']}")
 
