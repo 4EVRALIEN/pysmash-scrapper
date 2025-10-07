@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures.
 """
+
 import os
 import tempfile
 from unittest.mock import Mock
@@ -17,12 +18,12 @@ def temp_db():
     # Create a temporary file for the test database
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         db_path = tmp.name
-    
+
     # Set environment variable for tests
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-    
+
     yield db_path
-    
+
     # Clean up
     try:
         os.unlink(db_path)
@@ -41,7 +42,7 @@ def test_client(temp_db):
     """Create a test client with temporary database."""
     # Import after setting environment variable
     from scraper.api import app
-    
+
     return TestClient(app)
 
 

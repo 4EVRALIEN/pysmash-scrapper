@@ -1,6 +1,7 @@
 """
 Tests for the scraper modules.
 """
+
 import pytest
 from unittest.mock import MagicMock, Mock, patch
 from bs4 import BeautifulSoup
@@ -158,23 +159,27 @@ class TestFactionScraper:
         """Test scraping faction cards."""
         # Mock the card scraper
         mock_card_scraper = Mock()
-        mock_result = ScrapingResult(success=True, message="Success", items_processed=5, errors=[])
+        mock_result = ScrapingResult(
+            success=True, message="Success", items_processed=5, errors=[]
+        )
         mock_card_scraper.scrape_faction_cards.return_value = mock_result
         mock_card_scraper_class.return_value = mock_card_scraper
-        
+
         # Override the card scraper instance
         faction_scraper.card_scraper = mock_card_scraper
 
         cards = faction_scraper.scrape_faction_cards("Robots", "robot_id")
 
         assert isinstance(cards, list)
-        mock_card_scraper.scrape_faction_cards.assert_called_once_with("Robots", "robot_id")
+        mock_card_scraper.scrape_faction_cards.assert_called_once_with(
+            "Robots", "robot_id"
+        )
 
     def test_scrape_complete_faction(self, faction_scraper):
         """Test complete faction scraping."""
-        with patch.object(faction_scraper, 'scrape_faction_cards', return_value=[]):
+        with patch.object(faction_scraper, "scrape_faction_cards", return_value=[]):
             result = faction_scraper.scrape("Robots", "test_set_id")
-            
+
             assert isinstance(result, ScrapingResult)
             assert result.success is True
             assert "Robots" in result.message
@@ -197,7 +202,7 @@ class TestCardScraper:
 
     def test_scrape_faction_cards_method_exists(self, card_scraper):
         """Test that scrape_faction_cards method exists."""
-        assert hasattr(card_scraper, 'scrape_faction_cards')
+        assert hasattr(card_scraper, "scrape_faction_cards")
 
     def test_scrape_faction_cards_returns_result(self, card_scraper):
         """Test that scrape_faction_cards returns a ScrapingResult."""
@@ -205,11 +210,11 @@ class TestCardScraper:
         mock_response = Mock()
         mock_response.content = "<html></html>"
         card_scraper.web_client.get_page.return_value = mock_response
-        
+
         result = card_scraper.scrape_faction_cards("Robots", "robot_id")
-        
+
         assert isinstance(result, ScrapingResult)
-        assert hasattr(result, 'success')
-        assert hasattr(result, 'message')
-        assert hasattr(result, 'items_processed')
-        assert hasattr(result, 'errors')
+        assert hasattr(result, "success")
+        assert hasattr(result, "message")
+        assert hasattr(result, "items_processed")
+        assert hasattr(result, "errors")

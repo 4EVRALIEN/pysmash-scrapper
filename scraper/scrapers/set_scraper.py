@@ -41,9 +41,7 @@ class SetScraper(BaseScraper):
                         set_name = href.split("/wiki/")[-1]
                         sets.append(set_name)
 
-            self._log_scraping_complete(
-                "available sets discovery", len(sets), "wiki"
-            )
+            self._log_scraping_complete("available sets discovery", len(sets), "wiki")
             return sets
 
         except Exception as e:
@@ -104,9 +102,7 @@ class SetScraper(BaseScraper):
                     faction_name = href.split("/wiki/")[-1]
                     factions.append(faction_name)
 
-            self._log_scraping_complete(
-                "set factions", len(factions), set_name
-            )
+            self._log_scraping_complete("set factions", len(factions), set_name)
             return factions
 
         except Exception as e:
@@ -133,9 +129,7 @@ class SetScraper(BaseScraper):
             # Scrape faction list
             factions = self.scrape_set_factions(set_name)
 
-            self._log_scraping_complete(
-                "set scraping", 1 + len(factions), set_name
-            )
+            self._log_scraping_complete("set scraping", 1 + len(factions), set_name)
 
             return self._create_success_result(
                 f"Successfully scraped set {set_name} with "
