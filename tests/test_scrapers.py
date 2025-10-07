@@ -2,8 +2,9 @@
 Tests for the scraper modules.
 """
 
-import pytest
 from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from bs4 import BeautifulSoup
 
 from scraper.models import ScrapingResult
