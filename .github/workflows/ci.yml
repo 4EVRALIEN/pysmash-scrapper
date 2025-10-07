@@ -33,20 +33,23 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black isort
         pip install -e .  # Install package in editable mode
     
     - name: Lint with flake8
       run: |
-        flake8 scraper/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 scraper/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 scraper/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 scraper/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
     
     - name: Check code formatting with black
       run: |
-        black --check scraper/ tests/
+        black --check scraper/ tests/ examples/
     
     - name: Check import sorting with isort
       run: |
-        isort --check-only scraper/ tests/
+        isort --check-only scraper/ tests/ examples/
     
     - name: Run tests with pytest
       run: |
