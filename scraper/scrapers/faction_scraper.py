@@ -3,7 +3,7 @@ Faction scraper for extracting faction data and associated cards.
 """
 
 import logging
-from typing import List
+from typing import List, Union
 
 from ..models import ActionCard, Faction, MinionCard, ScrapingResult
 from .base_scraper import BaseScraper
@@ -29,7 +29,7 @@ class FactionScraper(BaseScraper):
             set_id: ID of the set this faction belongs to
 
         Returns:
-            Faction model with scraped data
+            FactionData model with scraped data
         """
         faction_id = self.generate_id(faction_name)
 
@@ -49,7 +49,7 @@ class FactionScraper(BaseScraper):
 
     def scrape_faction_cards(
         self, faction_name: str, faction_id: str
-    ) -> List[MinionCard | ActionCard]:
+    ) -> List[Union[MinionCard, ActionCard]]:
         """
         Scrape all cards for a faction.
 
@@ -99,7 +99,8 @@ class FactionScraper(BaseScraper):
             if not set_id:
                 set_id = self.generate_id("unknown_set")
                 logger.warning(
-                    f"No set_id provided for faction {faction_name}, using generated ID"
+                    f"No set_id provided for faction {faction_name}, "
+                    f"using generated ID"
                 )
 
             # Scrape faction basic data
@@ -113,7 +114,8 @@ class FactionScraper(BaseScraper):
             )
 
             return self._create_success_result(
-                f"Successfully scraped faction {faction_name} with {len(cards)} cards",
+                f"Successfully scraped faction {faction_name} with "
+                f"{len(cards)} cards",
                 1 + len(cards),
             )
 

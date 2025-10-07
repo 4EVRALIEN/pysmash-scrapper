@@ -38,7 +38,7 @@ class ActionCard(BaseModel):
     card_url: Optional[str] = None
 
 
-class BaseData(BaseModel):
+class Base(BaseModel):
     """Model for a base."""
 
     base_id: str
@@ -59,7 +59,7 @@ class BaseData(BaseModel):
         return v
 
 
-class FactionData(BaseModel):
+class Faction(BaseModel):
     """Model for a faction."""
 
     faction_id: str
@@ -71,15 +71,15 @@ class FactionData(BaseModel):
     action_cards: List[ActionCard] = []
 
 
-class SetData(BaseModel):
+class Set(BaseModel):
     """Model for a set."""
 
     set_id: str
     set_name: str
     set_url: Optional[str] = None
     description: Optional[str] = None
-    factions: List[FactionData] = []
-    bases: List[BaseData] = []
+    factions: List[Faction] = []
+    bases: List[Base] = []
 
 
 class ScrapingResult(BaseModel):
