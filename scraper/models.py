@@ -16,6 +16,7 @@ class MinionCard(BaseModel):
     faction_id: str
     power: int
     description: str
+    number_of: int = 1  # Number of copies of this card in the faction
     card_url: Optional[str] = None
 
     @field_validator("power")
@@ -24,6 +25,14 @@ class MinionCard(BaseModel):
         """Validate power is non-negative."""
         if v < 0:
             raise ValueError("Power must be non-negative")
+        return v
+
+    @field_validator("number_of")
+    @classmethod
+    def validate_number_of(cls, v):
+        """Validate number_of is positive."""
+        if v < 1:
+            raise ValueError("Number of cards must be at least 1")
         return v
 
 
@@ -35,7 +44,16 @@ class ActionCard(BaseModel):
     faction_name: str
     faction_id: str
     description: str
+    number_of: int = 1  # Number of copies of this card in the faction
     card_url: Optional[str] = None
+
+    @field_validator("number_of")
+    @classmethod
+    def validate_number_of(cls, v):
+        """Validate number_of is positive."""
+        if v < 1:
+            raise ValueError("Number of cards must be at least 1")
+        return v
 
 
 class Base(BaseModel):

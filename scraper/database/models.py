@@ -73,6 +73,7 @@ class Minion(Base):
     minion_name = Column(String(100), nullable=False)
     minion_desc = Column(Text, nullable=False)
     minion_power = Column(Integer, nullable=False)
+    number_of = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -84,6 +85,7 @@ class Action(Base):
     action_id = Column(String(32), primary_key=True)
     action_name = Column(String(100), nullable=False)
     action_desc = Column(Text, nullable=False)
+    number_of = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

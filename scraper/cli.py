@@ -107,8 +107,8 @@ def scrape_all(ctx):
     error_count = 0
 
     with SmashUpWebClient() as web_client:
-        set_scraper = SetScraper(web_client)
-        faction_scraper = FactionScraper(web_client)
+        set_scraper = SetScraper(web_client, repository)
+        faction_scraper = FactionScraper(web_client, repository)
 
         sets = set_scraper.get_available_sets()
         click.echo(f"📦 Found {len(sets)} sets to process")
@@ -142,12 +142,12 @@ def scrape_faction(ctx, faction_name, set_name):
     repository = SmashUpRepository(database_url)
 
     with SmashUpWebClient() as web_client:
-        faction_scraper = FactionScraper(web_client)
+        faction_scraper = FactionScraper(web_client, repository)
 
         # Generate or get set_id
         set_id = None
         if set_name:
-            set_scraper = SetScraper(web_client)
+            set_scraper = SetScraper(web_client, repository)
             set_data = set_scraper.scrape_set_data(set_name)
             set_id = set_data.set_id
             repository.insert_set(set_data)

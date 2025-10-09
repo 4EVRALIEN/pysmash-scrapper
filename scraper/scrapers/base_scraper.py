@@ -21,14 +21,16 @@ class BaseScraper(ABC):
     Provides common functionality and interface.
     """
 
-    def __init__(self, web_client: Optional[SmashUpWebClient] = None):
+    def __init__(self, web_client: Optional[SmashUpWebClient] = None, repository=None):
         """
         Initialize the scraper.
 
         Args:
             web_client: Web client instance. If None, creates a new one.
+            repository: Database repository instance for saving data.
         """
         self.web_client = web_client or SmashUpWebClient()
+        self.repository = repository
         self._owns_client = web_client is None
 
     def __enter__(self):

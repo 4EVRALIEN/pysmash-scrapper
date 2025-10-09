@@ -73,15 +73,7 @@ async def get_sets():
     try:
         repository = get_repository()
         sets = repository.get_all_sets()
-        return [
-            {
-                "set_id": s.set_id,
-                "set_name": s.set_name,
-                "set_url": s.set_url,
-                "description": s.description,
-            }
-            for s in sets
-        ]
+        return sets
     except Exception as e:
         logger.error(f"Error getting sets: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve sets")
@@ -97,15 +89,7 @@ async def get_factions_by_set(set_id: str):
             raise HTTPException(
                 status_code=404, detail=f"No factions found for set {set_id}"
             )
-        return [
-            {
-                "faction_id": f.faction_id,
-                "faction_name": f.faction_name,
-                "faction_url": f.faction_url,
-                "set_id": f.set_id,
-            }
-            for f in factions
-        ]
+        return factions
     except HTTPException:
         raise
     except Exception as e:
@@ -279,12 +263,12 @@ async def _background_scrape_faction(faction_name: str, set_name: str = None):
         repository = get_repository()
 
         with SmashUpWebClient() as web_client:
-            faction_scraper = FactionScraper(web_client)
+            faction_scraper = FactionScraper(web_client, repository)
 
             set_id = None
             if set_name:
                 # Create or get set first
-                set_scraper = SetScraper(web_client)
+                set_scraper = SetScraper(web_client, repository)
                 set_data = set_scraper.scrape_set_data(set_name)
                 repository.insert_set(set_data)
                 set_id = set_data.set_id
@@ -310,8 +294,8 @@ async def _background_scrape_set(set_name: str):
         repository = get_repository()
 
         with SmashUpWebClient() as web_client:
-            set_scraper = SetScraper(web_client)
-            faction_scraper = FactionScraper(web_client)
+            set_scraper = SetScraper(web_client, repository)
+            faction_scraper = FactionScraper(web_client, repository)
 
             # Scrape set data
             set_data = set_scraper.scrape_set_data(set_name)
@@ -340,8 +324,8 @@ async def _background_scrape_all():
         repository = get_repository()
 
         with SmashUpWebClient() as web_client:
-            set_scraper = SetScraper(web_client)
-            faction_scraper = FactionScraper(web_client)
+            set_scraper = SetScraper(web_client, repository)
+            faction_scraper = FactionScraper(web_client, repository)
 
             # Get all available sets
             available_sets = set_scraper.get_available_sets()

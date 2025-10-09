@@ -114,18 +114,25 @@ class SmashUpRepository:
 
                 minion_id = BaseScraper.generate_id(minion.name)
 
-                # Insert minion data
-                db_minion = Minion(
-                    minion_id=minion_id,
-                    minion_name=minion.name,
-                    minion_desc=minion.description,
-                    minion_power=minion.power,
-                )
-                session.add(db_minion)
+                # Check if minion already exists
+                existing_minion = session.query(Minion).filter(Minion.minion_id == minion_id).first()
+                if not existing_minion:
+                    # Insert minion data
+                    db_minion = Minion(
+                        minion_id=minion_id,
+                        minion_name=minion.name,
+                        minion_desc=minion.description,
+                        minion_power=minion.power,
+                        number_of=minion.number_of,
+                    )
+                    session.add(db_minion)
 
-                # Link to faction
-                db_card = Card(card_id=minion_id, faction_id=minion.faction_id)
-                session.add(db_card)
+                # Check if card-faction link already exists
+                existing_card = session.query(Card).filter(Card.card_id == minion_id).first()
+                if not existing_card:
+                    # Link to faction
+                    db_card = Card(card_id=minion_id, faction_id=minion.faction_id)
+                    session.add(db_card)
 
                 logger.debug(f"Inserted minion: {minion.name}")
                 return True
@@ -150,17 +157,24 @@ class SmashUpRepository:
 
                 action_id = BaseScraper.generate_id(action.name)
 
-                # Insert action data
-                db_action = Action(
-                    action_id=action_id,
-                    action_name=action.name,
-                    action_desc=action.description,
-                )
-                session.add(db_action)
+                # Check if action already exists
+                existing_action = session.query(Action).filter(Action.action_id == action_id).first()
+                if not existing_action:
+                    # Insert action data
+                    db_action = Action(
+                        action_id=action_id,
+                        action_name=action.name,
+                        action_desc=action.description,
+                        number_of=action.number_of,
+                    )
+                    session.add(db_action)
 
-                # Link to faction
-                db_card = Card(card_id=action_id, faction_id=action.faction_id)
-                session.add(db_card)
+                # Check if card-faction link already exists
+                existing_card = session.query(Card).filter(Card.card_id == action_id).first()
+                if not existing_card:
+                    # Link to faction
+                    db_card = Card(card_id=action_id, faction_id=action.faction_id)
+                    session.add(db_card)
 
                 logger.debug(f"Inserted action: {action.name}")
                 return True
@@ -268,6 +282,7 @@ class SmashUpRepository:
                         "minion_name": m.minion_name,
                         "minion_desc": m.minion_desc,
                         "minion_power": m.minion_power,
+                        "number_of": m.number_of,
                         "created_at": m.created_at.isoformat(),
                     }
                     for m in minions
@@ -291,6 +306,7 @@ class SmashUpRepository:
                         "action_id": a.action_id,
                         "action_name": a.action_name,
                         "action_desc": a.action_desc,
+                        "number_of": a.number_of,
                         "created_at": a.created_at.isoformat(),
                     }
                     for a in actions
@@ -390,6 +406,7 @@ class SmashUpRepository:
                         "minion_name": minion.minion_name,
                         "minion_desc": minion.minion_desc,
                         "minion_power": minion.minion_power,
+                        "number_of": minion.number_of,
                         "created_at": minion.created_at.isoformat(),
                     }
                 return None
@@ -415,6 +432,7 @@ class SmashUpRepository:
                         "action_id": action.action_id,
                         "action_name": action.action_name,
                         "action_desc": action.action_desc,
+                        "number_of": action.number_of,
                         "created_at": action.created_at.isoformat(),
                     }
                 return None
