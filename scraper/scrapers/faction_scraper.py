@@ -66,11 +66,6 @@ class FactionScraper(BaseScraper):
         result = self.card_scraper.scrape_faction_cards(faction_name, faction_id)
 
         if result.success:
-            # Get the actual cards from the card scraper
-            cards_result = self.card_scraper.scrape_faction_cards(
-                faction_name, faction_id
-            )
-
             # Parse the cards from the page manually to get the actual card objects
             # since the card scraper result doesn't return the card objects
             cards = []
