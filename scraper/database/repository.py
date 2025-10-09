@@ -115,7 +115,9 @@ class SmashUpRepository:
                 minion_id = BaseScraper.generate_id(minion.name)
 
                 # Check if minion already exists
-                existing_minion = session.query(Minion).filter(Minion.minion_id == minion_id).first()
+                existing_minion = (
+                    session.query(Minion).filter(Minion.minion_id == minion_id).first()
+                )
                 if not existing_minion:
                     # Insert minion data
                     db_minion = Minion(
@@ -128,7 +130,9 @@ class SmashUpRepository:
                     session.add(db_minion)
 
                 # Check if card-faction link already exists
-                existing_card = session.query(Card).filter(Card.card_id == minion_id).first()
+                existing_card = (
+                    session.query(Card).filter(Card.card_id == minion_id).first()
+                )
                 if not existing_card:
                     # Link to faction
                     db_card = Card(card_id=minion_id, faction_id=minion.faction_id)
@@ -158,7 +162,9 @@ class SmashUpRepository:
                 action_id = BaseScraper.generate_id(action.name)
 
                 # Check if action already exists
-                existing_action = session.query(Action).filter(Action.action_id == action_id).first()
+                existing_action = (
+                    session.query(Action).filter(Action.action_id == action_id).first()
+                )
                 if not existing_action:
                     # Insert action data
                     db_action = Action(
@@ -170,7 +176,9 @@ class SmashUpRepository:
                     session.add(db_action)
 
                 # Check if card-faction link already exists
-                existing_card = session.query(Card).filter(Card.card_id == action_id).first()
+                existing_card = (
+                    session.query(Card).filter(Card.card_id == action_id).first()
+                )
                 if not existing_card:
                     # Link to faction
                     db_card = Card(card_id=action_id, faction_id=action.faction_id)
@@ -359,8 +367,12 @@ class SmashUpRepository:
                 card_ids = [c.card_id for c in cards]
 
                 # Get minions and actions with these IDs
-                minions = session.query(Minion).filter(Minion.minion_id.in_(card_ids)).all()
-                actions = session.query(Action).filter(Action.action_id.in_(card_ids)).all()
+                minions = (
+                    session.query(Minion).filter(Minion.minion_id.in_(card_ids)).all()
+                )
+                actions = (
+                    session.query(Action).filter(Action.action_id.in_(card_ids)).all()
+                )
 
                 return {
                     "minions": [
@@ -381,7 +393,7 @@ class SmashUpRepository:
                             "created_at": a.created_at.isoformat(),
                         }
                         for a in actions
-                    ]
+                    ],
                 }
         except SQLAlchemyError as e:
             logger.error(f"Failed to retrieve cards for faction {faction_id}: {e}")
@@ -399,7 +411,9 @@ class SmashUpRepository:
         """
         try:
             with self.get_session() as session:
-                minion = session.query(Minion).filter(Minion.minion_id == minion_id).first()
+                minion = (
+                    session.query(Minion).filter(Minion.minion_id == minion_id).first()
+                )
                 if minion:
                     return {
                         "minion_id": minion.minion_id,
@@ -426,7 +440,9 @@ class SmashUpRepository:
         """
         try:
             with self.get_session() as session:
-                action = session.query(Action).filter(Action.action_id == action_id).first()
+                action = (
+                    session.query(Action).filter(Action.action_id == action_id).first()
+                )
                 if action:
                     return {
                         "action_id": action.action_id,
@@ -452,7 +468,9 @@ class SmashUpRepository:
         """
         try:
             with self.get_session() as session:
-                base = session.query(BaseCard).filter(BaseCard.base_id == base_id).first()
+                base = (
+                    session.query(BaseCard).filter(BaseCard.base_id == base_id).first()
+                )
                 if base:
                     return {
                         "base_id": base.base_id,

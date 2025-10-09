@@ -62,7 +62,7 @@ class SmashUpWebClient:
         """
         # Handle special case where endpoint contains ':' but isn't a full URL
         # urljoin treats "Category:Sets" as an absolute URL due to the colon
-        if ':' in endpoint and not endpoint.startswith(('http://', 'https://')):
+        if ":" in endpoint and not endpoint.startswith(("http://", "https://")):
             url = self.BASE_URL + endpoint
         else:
             url = urljoin(self.BASE_URL, endpoint)

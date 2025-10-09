@@ -67,33 +67,36 @@ class FactionScraper(BaseScraper):
 
         if result.success:
             # Get the actual cards from the card scraper
-            cards_result = self.card_scraper.scrape_faction_cards(faction_name, faction_id)
-            
+            cards_result = self.card_scraper.scrape_faction_cards(
+                faction_name, faction_id
+            )
+
             # Parse the cards from the page manually to get the actual card objects
             # since the card scraper result doesn't return the card objects
             cards = []
             if self.repository:
                 # Re-scrape to get the card objects and save them
                 from bs4 import BeautifulSoup
+
                 response = self.web_client.get_faction_page(faction_name)
                 if response:
                     soup = BeautifulSoup(response.content, "html.parser")
                     paragraphs = soup.find_all("p")
-                    
+
                     for paragraph in paragraphs:
                         span = paragraph.find("span")
                         if not span or not span.get("id"):
                             continue
-                            
+
                         try:
                             card_name = span["id"]
                             card_text = paragraph.text
-                            
+
                             # Parse the card
                             card = self.card_scraper._parse_card_from_text(
                                 card_text, card_name, faction_name, faction_id
                             )
-                            
+
                             if card:
                                 # Save to database
                                 if isinstance(card, MinionCard):
@@ -102,10 +105,12 @@ class FactionScraper(BaseScraper):
                                 elif isinstance(card, ActionCard):
                                     if self.repository.insert_action(card):
                                         cards.append(card)
-                                        
+
                         except Exception as e:
-                            logger.error(f"Error processing card {span.get('id', 'unknown')}: {e}")
-            
+                            logger.error(
+                                f"Error processing card {span.get('id', 'unknown')}: {e}"
+                            )
+
             self._log_scraping_complete("card scraping", len(cards), faction_name)
             return cards
         else:
