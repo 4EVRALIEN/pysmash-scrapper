@@ -4,7 +4,7 @@ Repository pattern implementation for database operations.
 
 import logging
 from contextlib import contextmanager
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -114,18 +114,29 @@ class SmashUpRepository:
 
                 minion_id = BaseScraper.generate_id(minion.name)
 
-                # Insert minion data
-                db_minion = Minion(
-                    minion_id=minion_id,
-                    minion_name=minion.name,
-                    minion_desc=minion.description,
-                    minion_power=minion.power,
+                # Check if minion already exists
+                existing_minion = (
+                    session.query(Minion).filter(Minion.minion_id == minion_id).first()
                 )
-                session.add(db_minion)
+                if not existing_minion:
+                    # Insert minion data
+                    db_minion = Minion(
+                        minion_id=minion_id,
+                        minion_name=minion.name,
+                        minion_desc=minion.description,
+                        minion_power=minion.power,
+                        number_of=minion.number_of,
+                    )
+                    session.add(db_minion)
 
-                # Link to faction
-                db_card = Card(card_id=minion_id, faction_id=minion.faction_id)
-                session.add(db_card)
+                # Check if card-faction link already exists
+                existing_card = (
+                    session.query(Card).filter(Card.card_id == minion_id).first()
+                )
+                if not existing_card:
+                    # Link to faction
+                    db_card = Card(card_id=minion_id, faction_id=minion.faction_id)
+                    session.add(db_card)
 
                 logger.debug(f"Inserted minion: {minion.name}")
                 return True
@@ -150,17 +161,28 @@ class SmashUpRepository:
 
                 action_id = BaseScraper.generate_id(action.name)
 
-                # Insert action data
-                db_action = Action(
-                    action_id=action_id,
-                    action_name=action.name,
-                    action_desc=action.description,
+                # Check if action already exists
+                existing_action = (
+                    session.query(Action).filter(Action.action_id == action_id).first()
                 )
-                session.add(db_action)
+                if not existing_action:
+                    # Insert action data
+                    db_action = Action(
+                        action_id=action_id,
+                        action_name=action.name,
+                        action_desc=action.description,
+                        number_of=action.number_of,
+                    )
+                    session.add(db_action)
 
-                # Link to faction
-                db_card = Card(card_id=action_id, faction_id=action.faction_id)
-                session.add(db_card)
+                # Check if card-faction link already exists
+                existing_card = (
+                    session.query(Card).filter(Card.card_id == action_id).first()
+                )
+                if not existing_card:
+                    # Link to faction
+                    db_card = Card(card_id=action_id, faction_id=action.faction_id)
+                    session.add(db_card)
 
                 logger.debug(f"Inserted action: {action.name}")
                 return True
@@ -183,23 +205,23 @@ class SmashUpRepository:
                 # Generate ID from name
                 from ..scrapers.base_scraper import BaseScraper
 
-                base_id = BaseScraper.generate_id(base.base_name)
+                base_id = BaseScraper.generate_id(base.name)
 
                 db_base = BaseCard(
                     base_id=base_id,
-                    base_name=base.base_name,
+                    base_name=base.name,
                     base_power=base.base_power,
-                    base_desc=base.base_desc,
+                    base_desc=base.description,
                     first_place=base.first_place,
                     second_place=base.second_place,
                     third_place=base.third_place,
                 )
                 session.add(db_base)
 
-                logger.debug(f"Inserted base: {base.base_name}")
+                logger.debug(f"Inserted base: {base.name}")
                 return True
         except SQLAlchemyError as e:
-            logger.error(f"Failed to insert base {base.base_name}: {e}")
+            logger.error(f"Failed to insert base {base.name}: {e}")
             return False
 
     def get_all_sets(self) -> List[Dict[str, Any]]:
@@ -251,6 +273,219 @@ class SmashUpRepository:
         except SQLAlchemyError as e:
             logger.error(f"Failed to retrieve factions for set {set_id}: {e}")
             return []
+
+    def get_all_minions(self) -> List[Dict[str, Any]]:
+        """
+        Get all minion cards from the database.
+
+        Returns:
+            List of minion card dictionaries
+        """
+        try:
+            with self.get_session() as session:
+                minions = session.query(Minion).all()
+                return [
+                    {
+                        "minion_id": m.minion_id,
+                        "minion_name": m.minion_name,
+                        "minion_desc": m.minion_desc,
+                        "minion_power": m.minion_power,
+                        "number_of": m.number_of,
+                        "created_at": m.created_at.isoformat(),
+                    }
+                    for m in minions
+                ]
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve minions: {e}")
+            return []
+
+    def get_all_actions(self) -> List[Dict[str, Any]]:
+        """
+        Get all action cards from the database.
+
+        Returns:
+            List of action card dictionaries
+        """
+        try:
+            with self.get_session() as session:
+                actions = session.query(Action).all()
+                return [
+                    {
+                        "action_id": a.action_id,
+                        "action_name": a.action_name,
+                        "action_desc": a.action_desc,
+                        "number_of": a.number_of,
+                        "created_at": a.created_at.isoformat(),
+                    }
+                    for a in actions
+                ]
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve actions: {e}")
+            return []
+
+    def get_all_bases(self) -> List[Dict[str, Any]]:
+        """
+        Get all base cards from the database.
+
+        Returns:
+            List of base card dictionaries
+        """
+        try:
+            with self.get_session() as session:
+                bases = session.query(BaseCard).all()
+                return [
+                    {
+                        "base_id": b.base_id,
+                        "base_name": b.base_name,
+                        "base_power": b.base_power,
+                        "base_desc": b.base_desc,
+                        "first_place": b.first_place,
+                        "second_place": b.second_place,
+                        "third_place": b.third_place,
+                        "created_at": b.created_at.isoformat(),
+                    }
+                    for b in bases
+                ]
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve bases: {e}")
+            return []
+
+    def get_cards_by_faction(self, faction_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Get all cards (minions and actions) for a specific faction.
+
+        Args:
+            faction_id: ID of the faction
+
+        Returns:
+            Dictionary with 'minions' and 'actions' lists
+        """
+        try:
+            with self.get_session() as session:
+                # Get card IDs linked to this faction
+                cards = session.query(Card).filter(Card.faction_id == faction_id).all()
+                card_ids = [c.card_id for c in cards]
+
+                # Get minions and actions with these IDs
+                minions = (
+                    session.query(Minion).filter(Minion.minion_id.in_(card_ids)).all()
+                )
+                actions = (
+                    session.query(Action).filter(Action.action_id.in_(card_ids)).all()
+                )
+
+                return {
+                    "minions": [
+                        {
+                            "minion_id": m.minion_id,
+                            "minion_name": m.minion_name,
+                            "minion_desc": m.minion_desc,
+                            "minion_power": m.minion_power,
+                            "created_at": m.created_at.isoformat(),
+                        }
+                        for m in minions
+                    ],
+                    "actions": [
+                        {
+                            "action_id": a.action_id,
+                            "action_name": a.action_name,
+                            "action_desc": a.action_desc,
+                            "created_at": a.created_at.isoformat(),
+                        }
+                        for a in actions
+                    ],
+                }
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve cards for faction {faction_id}: {e}")
+            return {"minions": [], "actions": []}
+
+    def get_minion_by_id(self, minion_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific minion card by ID.
+
+        Args:
+            minion_id: ID of the minion card
+
+        Returns:
+            Minion dictionary or None if not found
+        """
+        try:
+            with self.get_session() as session:
+                minion = (
+                    session.query(Minion).filter(Minion.minion_id == minion_id).first()
+                )
+                if minion:
+                    return {
+                        "minion_id": minion.minion_id,
+                        "minion_name": minion.minion_name,
+                        "minion_desc": minion.minion_desc,
+                        "minion_power": minion.minion_power,
+                        "number_of": minion.number_of,
+                        "created_at": minion.created_at.isoformat(),
+                    }
+                return None
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve minion {minion_id}: {e}")
+            return None
+
+    def get_action_by_id(self, action_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific action card by ID.
+
+        Args:
+            action_id: ID of the action card
+
+        Returns:
+            Action dictionary or None if not found
+        """
+        try:
+            with self.get_session() as session:
+                action = (
+                    session.query(Action).filter(Action.action_id == action_id).first()
+                )
+                if action:
+                    return {
+                        "action_id": action.action_id,
+                        "action_name": action.action_name,
+                        "action_desc": action.action_desc,
+                        "number_of": action.number_of,
+                        "created_at": action.created_at.isoformat(),
+                    }
+                return None
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve action {action_id}: {e}")
+            return None
+
+    def get_base_by_id(self, base_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific base card by ID.
+
+        Args:
+            base_id: ID of the base card
+
+        Returns:
+            Base dictionary or None if not found
+        """
+        try:
+            with self.get_session() as session:
+                base = (
+                    session.query(BaseCard).filter(BaseCard.base_id == base_id).first()
+                )
+                if base:
+                    return {
+                        "base_id": base.base_id,
+                        "base_name": base.base_name,
+                        "base_power": base.base_power,
+                        "base_desc": base.base_desc,
+                        "first_place": base.first_place,
+                        "second_place": base.second_place,
+                        "third_place": base.third_place,
+                        "created_at": base.created_at.isoformat(),
+                    }
+                return None
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve base {base_id}: {e}")
+            return None
 
     def clear_all_data(self) -> bool:
         """

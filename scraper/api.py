@@ -73,15 +73,7 @@ async def get_sets():
     try:
         repository = get_repository()
         sets = repository.get_all_sets()
-        return [
-            {
-                "set_id": s.set_id,
-                "set_name": s.set_name,
-                "set_url": s.set_url,
-                "description": s.description,
-            }
-            for s in sets
-        ]
+        return sets
     except Exception as e:
         logger.error(f"Error getting sets: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve sets")
@@ -97,20 +89,108 @@ async def get_factions_by_set(set_id: str):
             raise HTTPException(
                 status_code=404, detail=f"No factions found for set {set_id}"
             )
-        return [
-            {
-                "faction_id": f.faction_id,
-                "faction_name": f.faction_name,
-                "faction_url": f.faction_url,
-                "set_id": f.set_id,
-            }
-            for f in factions
-        ]
+        return factions
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error getting factions for set {set_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve factions")
+
+
+@app.get("/cards/minions")
+async def get_all_minions():
+    """Get all minion cards."""
+    try:
+        repository = get_repository()
+        minions = repository.get_all_minions()
+        return minions
+    except Exception as e:
+        logger.error(f"Error getting minions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve minions")
+
+
+@app.get("/cards/actions")
+async def get_all_actions():
+    """Get all action cards."""
+    try:
+        repository = get_repository()
+        actions = repository.get_all_actions()
+        return actions
+    except Exception as e:
+        logger.error(f"Error getting actions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve actions")
+
+
+@app.get("/cards/bases")
+async def get_all_bases():
+    """Get all base cards."""
+    try:
+        repository = get_repository()
+        bases = repository.get_all_bases()
+        return bases
+    except Exception as e:
+        logger.error(f"Error getting bases: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve bases")
+
+
+@app.get("/cards/faction/{faction_id}")
+async def get_cards_by_faction(faction_id: str):
+    """Get all cards (minions and actions) for a specific faction."""
+    try:
+        repository = get_repository()
+        cards = repository.get_cards_by_faction(faction_id)
+        return cards
+    except Exception as e:
+        logger.error(f"Error getting cards for faction {faction_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve faction cards")
+
+
+@app.get("/cards/minion/{minion_id}")
+async def get_minion_by_id(minion_id: str):
+    """Get a specific minion card by ID."""
+    try:
+        repository = get_repository()
+        minion = repository.get_minion_by_id(minion_id)
+        if minion is None:
+            raise HTTPException(status_code=404, detail="Minion not found")
+        return minion
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting minion {minion_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve minion")
+
+
+@app.get("/cards/action/{action_id}")
+async def get_action_by_id(action_id: str):
+    """Get a specific action card by ID."""
+    try:
+        repository = get_repository()
+        action = repository.get_action_by_id(action_id)
+        if action is None:
+            raise HTTPException(status_code=404, detail="Action not found")
+        return action
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting action {action_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve action")
+
+
+@app.get("/cards/base/{base_id}")
+async def get_base_by_id(base_id: str):
+    """Get a specific base card by ID."""
+    try:
+        repository = get_repository()
+        base = repository.get_base_by_id(base_id)
+        if base is None:
+            raise HTTPException(status_code=404, detail="Base not found")
+        return base
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting base {base_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve base")
 
 
 @app.post("/scrape/faction/{faction_name}", response_model=ScrapingResult)
@@ -183,14 +263,14 @@ async def _background_scrape_faction(faction_name: str, set_name: str = None):
         repository = get_repository()
 
         with SmashUpWebClient() as web_client:
-            faction_scraper = FactionScraper(web_client)
+            faction_scraper = FactionScraper(web_client, repository)
 
             set_id = None
             if set_name:
                 # Create or get set first
-                set_scraper = SetScraper(web_client)
+                set_scraper = SetScraper(web_client, repository)
                 set_data = set_scraper.scrape_set_data(set_name)
-                repository.save_set(set_data)
+                repository.insert_set(set_data)
                 set_id = set_data.set_id
 
             # Scrape faction
@@ -214,12 +294,12 @@ async def _background_scrape_set(set_name: str):
         repository = get_repository()
 
         with SmashUpWebClient() as web_client:
-            set_scraper = SetScraper(web_client)
-            faction_scraper = FactionScraper(web_client)
+            set_scraper = SetScraper(web_client, repository)
+            faction_scraper = FactionScraper(web_client, repository)
 
             # Scrape set data
             set_data = set_scraper.scrape_set_data(set_name)
-            repository.save_set(set_data)
+            repository.insert_set(set_data)
 
             # Scrape all factions in the set
             factions = set_scraper.scrape_set_factions(set_name)
@@ -244,8 +324,8 @@ async def _background_scrape_all():
         repository = get_repository()
 
         with SmashUpWebClient() as web_client:
-            set_scraper = SetScraper(web_client)
-            faction_scraper = FactionScraper(web_client)
+            set_scraper = SetScraper(web_client, repository)
+            faction_scraper = FactionScraper(web_client, repository)
 
             # Get all available sets
             available_sets = set_scraper.get_available_sets()
@@ -255,7 +335,7 @@ async def _background_scrape_all():
                 try:
                     # Scrape set data
                     set_data = set_scraper.scrape_set_data(set_name)
-                    repository.save_set(set_data)
+                    repository.insert_set(set_data)
 
                     # Scrape all factions in the set
                     factions = set_scraper.scrape_set_factions(set_name)

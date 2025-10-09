@@ -142,6 +142,7 @@ class CardScraper(BaseScraper):
             return None
 
         return MinionCard(
+            card_id=self.generate_id(card_name),
             name=card_name,
             description=description,
             faction_name=faction_name,
@@ -159,6 +160,7 @@ class CardScraper(BaseScraper):
             return None
 
         return ActionCard(
+            card_id=self.generate_id(card_name),
             name=card_name,
             description=description,
             faction_name=faction_name,

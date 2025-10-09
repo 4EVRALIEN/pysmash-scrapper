@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class FactionScraper(BaseScraper):
-    """Scraper for faction data and their cards."""
+    """Scraper for faction data and associated cards."""
 
-    def __init__(self, web_client=None):
-        """Initialize with optional card scraper."""
-        super().__init__(web_client)
-        self.card_scraper = CardScraper(self.web_client)
+    def __init__(self, web_client=None, repository=None):
+        """Initialize with card scraper."""
+        super().__init__(web_client, repository)
+        self.card_scraper = CardScraper(self.web_client, repository)
 
     def scrape_faction_data(self, faction_name: str, set_id: str) -> Faction:
         """
@@ -66,13 +66,48 @@ class FactionScraper(BaseScraper):
         result = self.card_scraper.scrape_faction_cards(faction_name, faction_id)
 
         if result.success:
-            self._log_scraping_complete(
-                "card scraping", result.items_processed, faction_name
-            )
-            # Note: In a real implementation, you'd want to return actual cards
-            # For now, we'll return an empty list as cards are handled by
-            # the card scraper
-            return []
+            # Parse the cards from the page manually to get the actual card objects
+            # since the card scraper result doesn't return the card objects
+            cards = []
+            if self.repository:
+                # Re-scrape to get the card objects and save them
+                from bs4 import BeautifulSoup
+
+                response = self.web_client.get_faction_page(faction_name)
+                if response:
+                    soup = BeautifulSoup(response.content, "html.parser")
+                    paragraphs = soup.find_all("p")
+
+                    for paragraph in paragraphs:
+                        span = paragraph.find("span")
+                        if not span or not span.get("id"):
+                            continue
+
+                        try:
+                            card_name = span["id"]
+                            card_text = paragraph.text
+
+                            # Parse the card
+                            card = self.card_scraper._parse_card_from_text(
+                                card_text, card_name, faction_name, faction_id
+                            )
+
+                            if card:
+                                # Save to database
+                                if isinstance(card, MinionCard):
+                                    if self.repository.insert_minion(card):
+                                        cards.append(card)
+                                elif isinstance(card, ActionCard):
+                                    if self.repository.insert_action(card):
+                                        cards.append(card)
+
+                        except Exception as e:
+                            logger.error(
+                                f"Error processing card {span.get('id', 'unknown')}: {e}"
+                            )
+
+            self._log_scraping_complete("card scraping", len(cards), faction_name)
+            return cards
         else:
             message = (
                 f"Failed to scrape cards for faction {faction_name}: "

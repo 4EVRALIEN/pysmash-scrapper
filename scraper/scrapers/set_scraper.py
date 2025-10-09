@@ -29,20 +29,42 @@ class SetScraper(BaseScraper):
             response = self.web_client.get_page("Category:Sets")
             soup = bs4.BeautifulSoup(response.content, "html.parser")
 
-            # Find set links in category tree
+            # Find set links in category page - they are in unordered lists
             sets = []
-            category_sections = soup.find_all("div", class_="CategoryTreeSection")
+            ul_tags = soup.find_all("ul")
 
-            for section in category_sections:
-                links = section.find_all("a")
+            for ul in ul_tags:
+                links = ul.find_all("a")
                 for link in links:
                     href = link.get("href", "")
-                    if "/wiki/" in href and not href.endswith("Category:Sets"):
+                    if (
+                        href.startswith("/wiki/")
+                        and not href.startswith("/wiki/Category:")
+                        and not href.startswith("/wiki/Special:")
+                        and not href.startswith("/wiki/File:")
+                    ):
                         set_name = href.split("/wiki/")[-1]
-                        sets.append(set_name)
+                        # Additional filter to avoid non-set pages
+                        if (
+                            set_name
+                            and not set_name.startswith("User:")
+                            and not set_name.endswith("_Wiki")
+                            and set_name != "Main_Page"
+                        ):
+                            sets.append(set_name)
 
-            self._log_scraping_complete("available sets discovery", len(sets), "wiki")
-            return sets
+            # Remove duplicates while preserving order
+            unique_sets = []
+            seen = set()
+            for set_name in sets:
+                if set_name not in seen:
+                    unique_sets.append(set_name)
+                    seen.add(set_name)
+
+            self._log_scraping_complete(
+                "available sets discovery", len(unique_sets), "wiki"
+            )
+            return unique_sets
 
         except Exception as e:
             logger.error(f"Failed to get available sets: {e}")
